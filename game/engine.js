@@ -1,88 +1,122 @@
-window.engine = (function(){
-	var elmCanvas = [];
-	var glContext;
-	var fragmentShader;
-	var vertexShader;
-	var shaderProgram;
+window.engine = (function () {
+    // Engine object manages the game engine
+    var Engine = {
+        FRAME_LIMIT: 60
+    };
 
-	function engine() {
+    var elmCanvas = [];     // List of available canvas elements
+    var glContext;          // Current webGL context
+    var fragmentShader;     // Fragment Shader
+    var vertexShader;       // Vertex Shader
+    var shaderProgram;      // Shader Program
+    
+    var mvMatrix = mat4.create();
+    var pMatrix = mat4.create();
 
-	}
+    var lastTime = null;    // Last render time
+    Engine.render = function(t) {
+        // Calculate Duration since last render
+        var duration = lastTime ? t - lastTime : 0;
 
-	engine.prototype.addCanvas = function(canvas) {
-		if(!canvas)
-			throw new Error("Invalid canvas element");
-		elmCanvas.push(canvas);
-	};
+        // Calculate FPS
+        //var fps = (1000/duration).toFixed(2);
+        //console.log("Render", fps+'fps', (t/1000).toFixed(2)+'s');
 
-	engine.prototype.getGLContext = function() {
-		if(glContext)
-			return glContext;
+        var gl = Engine.getGLContext();
 
-		for(var i=0; i<elmCanvas.length; i++) {
-			var canvas = elmCanvas[i];				
-	            	glContext = canvas.getContext("experimental-webgl");
-        	    // viewportWidth = canvas.width;
-	            // viewportHeight = canvas.height;
-			return glContext;
-		}
+        // Set Viewport dimensions
+        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
-		throw new Error("Could not initialise WebGL, sorry :-(");		
-	}
+        // Clear frame buffer
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-	engine.prototype.addShaderScript = function(scriptElm) {
-		var gl = this.getGLContext();
+        // Set perspective
+        mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
+        mat4.identity(mvMatrix);
 
-	        var str = "";
-        	var k = scriptElm.firstChild;
-	        while (k) {
-            		if (k.nodeType == 3) {
-                		str += k.textContent;
-	            	}
-        		k = k.nextSibling;
-	        }
+        // Render all objects
 
-		console.info("Loading and compiling Shader", scriptElm.type);
-        	if (scriptElm.type == "x-shader/x-fragment") {
-            		fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-		        gl.shaderSource(fragmentShader, str);
-        		gl.compileShader(fragmentShader);
-		        if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) 
-        	    		throw new Error(gl.getShaderInfoLog(fragmentShader));
+        // Request the next animation frame
+        lastTime = t;
+        window.requestAnimationFrame(Engine.render);
+    };
 
-	        } else if (scriptElm.type == "x-shader/x-vertex") {
-            		vertexShader = gl.createShader(gl.VERTEX_SHADER);
-		        gl.shaderSource(vertexShader, str);
-        		gl.compileShader(vertexShader);
-		        if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) 
-        	    		throw new Error(gl.getShaderInfoLog(vertexShader));
-	
-        	} else {
-            		throw new Error("Invalid Shader Script Type: " + scriptElm.type);
- 		}
+    Engine.addShaderScript = function (scriptElm) {
+        var gl = this.getGLContext();
+
+        var str = "";
+        var k = scriptElm.firstChild;
+        while (k) {
+            if (k.nodeType == 3) {
+                str += k.textContent;
+            }
+            k = k.nextSibling;
+        }
+
+        console.info("Loading and compiling Shader", scriptElm.type);
+        if (scriptElm.type == "x-shader/x-fragment") {
+            fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+            gl.shaderSource(fragmentShader, str);
+            gl.compileShader(fragmentShader);
+            if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS))
+                throw new Error(gl.getShaderInfoLog(fragmentShader));
+
+        } else if (scriptElm.type == "x-shader/x-vertex") {
+            vertexShader = gl.createShader(gl.VERTEX_SHADER);
+            gl.shaderSource(vertexShader, str);
+            gl.compileShader(vertexShader);
+            if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS))
+                throw new Error(gl.getShaderInfoLog(vertexShader));
+
+        } else {
+            throw new Error("Invalid Shader Script Type: " + scriptElm.type);
+        }
 
 
-		if(fragmentShader && vertexShader) {
-			console.info("Initializing Shaders");
+        if (fragmentShader && vertexShader) {
+            console.info("Initializing Shaders");
 
-        		shaderProgram = glContext.createProgram();
-	        	gl.attachShader(shaderProgram, vertexShader);
-        		gl.attachShader(shaderProgram, fragmentShader);
-        		gl.linkProgram(shaderProgram);
+            shaderProgram = glContext.createProgram();
+            gl.attachShader(shaderProgram, vertexShader);
+            gl.attachShader(shaderProgram, fragmentShader);
+            gl.linkProgram(shaderProgram);
 
-		        if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) 
-			        throw new Error("Could not initialise shaders");
-        
-		        gl.useProgram(shaderProgram);
+            if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS))
+                throw new Error("Could not initialise shaders");
 
-		        shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
-		        gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+            gl.useProgram(shaderProgram);
 
-		        shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
-		        shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
-		}
-	}
+            shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+            gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
 
-	return new engine();
+            shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
+            shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+        }
+    };
+
+    Engine.addCanvas = function (canvas) {
+        if (!canvas)
+            throw new Error("Invalid canvas element");
+        elmCanvas.push(canvas);
+    };
+
+    Engine.getGLContext = function () {
+        if (glContext)
+            return glContext;
+
+        for(var i = 0; i < elmCanvas.length; i++) {
+            if(glContext)
+                break;
+            var canvas = elmCanvas[i];
+            glContext = canvas.getContext("experimental-webgl");
+        }
+
+        if(!glContext)
+            throw new Error("Could not initialise WebGL, sorry :-(");
+
+        return glContext;
+    };
+
+    return Engine;
 })();
 
