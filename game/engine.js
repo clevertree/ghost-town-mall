@@ -10,6 +10,8 @@ window.engine = (function(){
 	}
 
 	engine.prototype.addCanvas = function(canvas) {
+		if(!canvas)
+			throw new Error("Invalid canvas element");
 		elmCanvas.push(canvas);
 	};
 
@@ -40,18 +42,21 @@ window.engine = (function(){
         		k = k.nextSibling;
 	        }
 
-	        var shader;
+		console.info("Loading and compiling Shader", scriptElm.type);
         	if (scriptElm.type == "x-shader/x-fragment") {
             		fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+		        gl.shaderSource(fragmentShader, str);
+        		gl.compileShader(fragmentShader);
+
 	        } else if (scriptElm.type == "x-shader/x-vertex") {
             		vertexShader = gl.createShader(gl.VERTEX_SHADER);
+		        gl.shaderSource(vertexShader, str);
+        		gl.compileShader(vertexShader);
+
         	} else {
             		throw new Error("Invalid Shader Script Type: " + scriptElm.type);
  		}
 
-		console.info("Loading and compiling Shader", scriptElm.type, shader);
-	        gl.shaderSource(shader, str);
-        	gl.compileShader(shader);
 
 	        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) 
             		throw new Error(gl.getShaderInfoLog(shader));
