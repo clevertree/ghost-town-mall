@@ -47,19 +47,20 @@ window.engine = (function(){
             		fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
 		        gl.shaderSource(fragmentShader, str);
         		gl.compileShader(fragmentShader);
+		        if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) 
+        	    		throw new Error(gl.getShaderInfoLog(fragmentShader));
 
 	        } else if (scriptElm.type == "x-shader/x-vertex") {
             		vertexShader = gl.createShader(gl.VERTEX_SHADER);
 		        gl.shaderSource(vertexShader, str);
         		gl.compileShader(vertexShader);
-
+		        if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) 
+        	    		throw new Error(gl.getShaderInfoLog(vertexShader));
+	
         	} else {
             		throw new Error("Invalid Shader Script Type: " + scriptElm.type);
  		}
 
-
-	        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) 
-            		throw new Error(gl.getShaderInfoLog(shader));
 
 		if(fragmentShader && vertexShader) {
 			console.info("Initializing Shaders");
